@@ -1,59 +1,150 @@
 {% extends 'base.html' %}
 {% block content %}
-    <h1>Preguntas</h1>
-    <div class="d-flex flex-column">
-        {% for question in object_list %}
-            <div class="card w-100 my-2 p-3">
-                <div class="d-flex flex-row">
-                    <div class="col-10">
-                        <i class="far fa-question-circle" title="{{ question.description }}"></i>
-                        <span class="fw-bold">{{ question.title }}</span>
-                    </div>
-                    <div class="col-2">
-                        <span class="fw-lighter">Autor:</span> {{ question.author }}
-                    </div>
-                </div>
-                <br>
-                <div class="d-flex justify-content-between">
-                    <div class="d-flex flex-column col-4">
-                        <u class="fw-lighter mb-1">Respuesta</u>
-                        <div>
-                            {% for val in '12345' %}
-                                <a class="mx-1 answer {% if question.user_value|slugify == val %}fas{% else %}fal{% endif %} fa-star text-decoration-none"
-                                   data-question="{{ question.pk }}"
-                                   data-value="{{ val }}" href="#"></a>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="col-4 d-flex flex-column ">
-                        <u class="fw-lighter mb-1">Evalúa la pregunta</u>
-                        <div>
-                            <a class="mx-1 like {% if question.user_likes %}fas{% else %}fal{% endif %} fa-thumbs-up text-decoration-none"
-                               href="#" data-question="{{ question.pk }}" data-value="like" ></a>
-                            <a class="mx-1 like {% if question.user_dislikes %}fas{% else %}fal{% endif %} fa-thumbs-up fa-flip-both text-decoration-none"
-                               href="#" data-question="{{ question.pk }}" data-value="dislike"></a>
-                        </div>
-                    </div>
-                    <div class="col-2">
-                        <u class="fw-lighter mb-1">Ranking:</u>
-                        <div>
-                           {{ question.ranking }} pts.
-                        </div>
-
-
-                    </div>
-                </div>
-            </div>
-        {% empty %}
-            <div>No hay preguntas.</div>
-        {% endfor %}
-    </div>
+<h1>Preguntas</h1>
+{% csrf_token %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+<div id="spinner" style="display: none;">
+    <p>Cargando preguntas...</p>
+</div>
+<div id="questions-container" class="d-flex flex-column">
+</div>
 {% endblock %}
 
 {% block js %}
-    <script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const container = document.getElementById('questions-container');
+        container.addEventListener('click', function (e) {
+            // Estrellas
+            if (e.target && e.target.matches('.answer.fa-star')) {
+                e.preventDefault();
+                e.stopPropagation();
 
+                const csrftoken = document.querySelector('[name=csrf-token]').content;
 
-    </script>
+                const star = e.target;
+                const question_pk = star.getAttribute('data-question');
+                const value = star.getAttribute('data-value');
 
+                loadQuestions(
+                    `/question/answer`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question_pk: question_pk, value: value })
+                })
+            }
+            // Like
+            if (e.target && e.target.matches('.like')) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const csrftoken = document.querySelector('[name=csrf-token]').content;
+
+                const like = e.target;
+                const question_pk = like.getAttribute('data-question');
+                const value = like.getAttribute('data-value');
+
+                loadQuestions(`/question/like`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question_pk: question_pk, value: value })
+                })
+            }
+        });
+
+        function loadQuestions(url, props = null) {
+            const spinner = document.getElementById('spinner');
+            const container = document.getElementById('questions-container');
+
+            container.innerHTML = '';
+            spinner.style.display = 'block';
+
+            setTimeout(() => {
+                fetch(url, props)
+                    .then(response => response.json())
+                    .then(data => {
+                        spinner.style.display = 'none';
+                        if (data.questions.length == 0) {
+                            container.innerHTML = '<div>No hay preguntas.</div>';
+                            return;
+                        }
+
+                        const questions = data.questions;
+                        printQuestions(questions)
+                    })
+                    .catch(error => {
+                        spinner.style.display = 'none';
+                        console.error('Error:', error)
+                    });
+            }, 500);
+        }
+
+        function printQuestions(questions) {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+
+            questions.forEach(question => {
+                console.log(question)
+
+                const likeClass = question.user_likes ? 'fas' : 'fal';
+                const dislikeClass = question.user_dislikes ? 'fas' : 'fal';
+
+                let stars = ``
+                for (let i = 1; i <= 5; i++) {
+                    const starClass = question.user_value == i ? 'fas' : 'fal';
+
+                    stars += `<a class="mx-1 answer ${starClass} fa-star text-decoration-none"
+                            data-question="${question.id}" data-value="${i}" href="#"></a>`
+                }
+
+                const questionElement = document.createElement('div');
+                questionElement.className = 'card w-100 my-2 p-3';
+                questionElement.innerHTML = `
+                            <div class="d-flex flex-row">
+                                <div class="col-10">
+                                    <i class="far fa-question-circle" title="${question.description}"></i>
+                                    <span class="fw-bold">${question.title}</span>
+                                </div>
+                                <div class="col-2">
+                                    <span class="fw-lighter">Autor:</span> ${question.author}
+                                </div>
+                            </div>
+                            <br>
+                            <div class="d-flex justify-content-between">
+                                <div class="d-flex flex-column col-4">
+                                    <u class="fw-lighter mb-1">Respuesta</u>
+                                    <div>
+                                        ${stars}
+                                    </div>
+                                </div>
+                                <div class="col-4 d-flex flex-column ">
+                                    <u class="fw-lighter mb-1">Evalúa la pregunta</u>
+                                    <div>
+                                        <a class="mx-1 like ${likeClass} fa-thumbs-up text-decoration-none"
+                                            href="#" data-question="${question.id}" data-value="like"></a>
+                                        <a class="mx-1 like ${dislikeClass} fa-thumbs-up fa-flip-both text-decoration-none"
+                                            href="#" data-question="${question.id}" data-value="dislike"></a>
+                                    </div>
+                                </div>
+                                <div class="col-2">
+                                    <u class="fw-lighter mb-1">Ranking:</u>
+                                    <div>
+                                        ${question.ranking} pts.
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                container.appendChild(questionElement);
+            });
+        }
+
+        loadQuestions("/questions");
+    });
+</script>
 {% endblock %}

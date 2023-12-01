@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>Hacer pregunta</h1>
-    <div class="d-flex">
-        <form method="post">{% csrf_token %}
-            {{ form.as_p }}
-            <hr>
-            <input class="btn btn-primary" type="submit" value="Guardar">
-        </form>
-    </div>
+<h1>Hacer pregunta</h1>
+<div class="d-flex">
+    <form method="post" action="{% url 'survey:question-new' %}">{% csrf_token %}
+        {{ form.as_p }}
+        <hr>
+        <input class="btn btn-primary" type="submit" value="Guardar">
+    </form>
+</div>
 {% endblock %}

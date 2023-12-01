@@ -19,7 +19,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('', include(('survey.urls','survey'), namespace='survey')),
-    path('registration/login/', LoginView.as_view(), name='login'),
-    path('registration/logout/', LogoutView.as_view(), name='logout'),
+    path('accounts/login/', LoginView.as_view(), name='login'),
+    path('accounts/logout/', LogoutView.as_view(), name='logout'),
     path('admin/', admin.site.urls),
 ]
