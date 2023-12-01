@@ -65,31 +65,29 @@
             container.innerHTML = '';
             spinner.style.display = 'block';
 
-            setTimeout(() => {
-                fetch(url, props)
-                    .then(response => response.json())
-                    .then(data => {
-                        spinner.style.display = 'none';
+            fetch(url, props)
+                .then(response => response.json())
+                .then(data => {
+                    spinner.style.display = 'none';
 
-                        if (!data.questions) {
-                            throw new Error(data.message);
-                        }
+                    if (!data.questions) {
+                        throw new Error(data.message);
+                    }
 
-                        if (data.questions.length == 0) {
-                            container.innerHTML = '<div>No hay preguntas.</div>';
-                            return;
-                        }
+                    if (data.questions.length == 0) {
+                        container.innerHTML = '<div>No hay preguntas.</div>';
+                        return;
+                    }
 
-                        const questions = data.questions;
-                        printQuestions(questions)
-                    })
-                    .catch(error => {
-                        spinner.style.display = 'none';
-                        console.error(error)
-                        alert(error);
-                        window.location.href = '/';
-                    });
-            }, 500);
+                    const questions = data.questions;
+                    printQuestions(questions)
+                })
+                .catch(error => {
+                    spinner.style.display = 'none';
+                    console.error(error)
+                    alert(error);
+                    window.location.href = '/';
+                });
         }
 
         function printQuestions(questions) {
