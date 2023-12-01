@@ -5,9 +5,17 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 from django.views.generic.edit import CreateView, UpdateView
 from django.views.generic import TemplateView
+from functools import wraps
 from survey.models import Question, Answer, Like
 import json
 
+def login_required_rest(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'message': 'Se debe autentificar para realizar esta acción.'}, status=401)
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
 class QuestionTemplateView(TemplateView):
     template_name = 'survey/question_list.html'
 
@@ -81,7 +89,7 @@ def get_top_questions(user_id=None):
 def questions(request):
     return JsonResponse({'questions': get_top_questions(request.user.id)})
 
-@login_required
+@login_required_rest
 def answer_question(request):
     if request.method != 'POST':
         return JsonResponse({'message': 'Método no permitido'}, status=405)
@@ -107,7 +115,7 @@ def answer_question(request):
     except Exception as e:
         return JsonResponse({'message': f'Error del servidor: {str(e)}'}, status=500)
 
-@login_required
+@login_required_rest
 def like_dislike_question(request):
     if request.method != 'POST':
         return JsonResponse({'message': 'Método no permitido'}, status=405)
